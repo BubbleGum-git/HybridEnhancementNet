@@ -1,0 +1,52 @@
+model:
+  name: "HybridEnhancementNet"
+  in_channels: 3
+  out_channels: 3
+
+datasets:
+  lol:
+    kaggle_id: "soumikrakshit/lol-dataset"
+    root_dir: "/content/dataset/lol_dataset"
+    image_size: [400, 600]
+    train_split: 0.8
+
+  darkface:
+    kaggle_id: "soumikrakshit/dark-face-dataset"
+    root_dir: "/content/darkface_dataset"
+    image_dir: "image"
+    label_dir: "label"
+    train_split: 0.8
+
+training:
+  lol:
+    epochs: 200
+    batch_size: 8
+    lr: 0.001
+    optimizer: "adam"
+    loss: "mse"
+    scheduler: "ReduceLROnPlateau"
+    seed: 42
+
+  darkface:
+    epochs: 25
+    batch_size: 4
+    lr: 0.001
+    optimizer: "adam"
+    loss: "mse"
+    scheduler: "StepLR"
+    step_size: 5
+    gamma: 0.5
+    vis_interval: 5
+    seed: 42
+
+paths:
+  drive_base:   "/content/drive/MyDrive/HybridEnhancementNet"
+  checkpoints:  "/content/drive/MyDrive/HybridEnhancementNet/checkpoints"
+  results:      "/content/drive/MyDrive/HybridEnhancementNet/results"
+  kaggle_json:  "/content/drive/MyDrive/kaggle.json"
+
+deploy:
+  export_format: "onnx"
+  quantize: true
+  target_fps: 10
+  input_size: [3, 256, 256]

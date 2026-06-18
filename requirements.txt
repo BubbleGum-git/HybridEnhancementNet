@@ -1,0 +1,15 @@
+torch
+torchvision
+kaggle
+kagglehub
+matplotlib
+seaborn
+tqdm
+Pillow
+numpy
+pandas
+opencv-python
+pyyaml
+onnx
+onnxruntime
+scikit-image
