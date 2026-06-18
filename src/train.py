@@ -31,8 +31,7 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg['lr'])
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=10, verbose=True
-    )
+    optimizer, mode='min', factor=0.5, patience=10)
 
     train_losses, val_losses, learning_rates = [], [], []
     best_val_loss = float('inf')
