@@ -30,8 +30,8 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg['lr'])
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode='min', factor=0.5, patience=10)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer, step_size=5, gamma=0.5)
 
     train_losses, val_losses, learning_rates = [], [], []
     best_val_loss = float('inf')
@@ -67,7 +67,7 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
                 val_running += criterion(enhanced, high_imgs).item()
         avg_val = val_running / max(1, len(val_loader))
 
-        scheduler.step(avg_val)
+        scheduler.step()          # StepLR steps automatically every epoch
         current_lr = optimizer.param_groups[0]['lr']
 
         train_losses.append(avg_train)
