@@ -13,3 +13,4 @@ pyyaml
 onnx
 onnxruntime
 scikit-image
+pytorch-msssim
