@@ -7,6 +7,7 @@ import torch.nn as nn
 import torchvision.utils as vutils
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from pytorch_msssim import ssim as ssim_fn
 
 
 # ─────────────────────────────────────────────
