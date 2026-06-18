@@ -17,15 +17,12 @@ from pytorch_msssim import ssim as ssim_fn
 def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
     """
     Supervised training on LOL dataset using paired low/high images.
+    - 200 epochs
+    - Adam optimizer, lr=1e-3
+    - StepLR: lr halved every 5 epochs
+    - MSE loss for training
+    - PSNR + SSIM for evaluation
     Saves best_model.pth and final_model.pth to save_dir.
-
-    Args:
-        model:        HybridEnhancementNet instance
-        train_loader: DataLoader for LOL training split
-        val_loader:   DataLoader for LOL validation split
-        device:       torch.device
-        cfg:          dict with keys: epochs, lr, scheduler
-        save_dir:     path to save checkpoints
     """
     os.makedirs(save_dir, exist_ok=True)
 
@@ -35,6 +32,7 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
     optimizer, step_size=5, gamma=0.5)
 
     train_losses, val_losses, learning_rates = [], [], []
+    val_psnrs, val_ssims = [], []
     best_val_loss = float('inf')
 
     for epoch in range(cfg['epochs']):
@@ -59,25 +57,42 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
 
         # ── Validate ──
         model.eval()
-        val_running = 0.0
+        val_running  = 0.0
+        ssim_running = 0.0
+        n_batches    = 0
         with torch.no_grad():
             for low_imgs, high_imgs in val_loader:
                 low_imgs  = low_imgs.to(device)
                 high_imgs = high_imgs.to(device)
                 enhanced  = model(low_imgs)
+                # MSE loss
                 val_running += criterion(enhanced, high_imgs).item()
-        avg_val = val_running / max(1, len(val_loader))
-
-        scheduler.step()          # StepLR steps automatically every epoch
+                # SSIM — expects values in [0, 1]
+                # tanh output is [-1,1] so rescale to [0,1] first
+                enh_01  = (enhanced  + 1.0) / 2.0
+                high_01 = (high_imgs + 1.0) / 2.0
+                ssim_running += ssim_fn(enh_01, high_01,
+                                        data_range=1.0,
+                                        size_average=True).item()
+                n_batches += 1
+        avg_val  = val_running  / max(1, len(val_loader))
+        avg_ssim = ssim_running / max(1, n_batches)
+        avg_psnr = -10.0 * math.log10(max(avg_val, 1e-12))
+        # StepLR steps every epoch automatically
+        scheduler.step()
         current_lr = optimizer.param_groups[0]['lr']
 
         train_losses.append(avg_train)
         val_losses.append(avg_val)
         learning_rates.append(current_lr)
+        val_psnrs.append(avg_psnr)
+        val_ssims.append(avg_ssim)
 
         print(f"\nEpoch {epoch+1}/{cfg['epochs']}")
         print(f"   Train Loss : {avg_train:.6f}")
         print(f"   Val Loss   : {avg_val:.6f}")
+        print(f"   PSNR       : {avg_psnr:.2f} dB")
+        print(f"   SSIM       : {avg_ssim:.4f}")
         print(f"   LR         : {current_lr:.2e}")
         print(f"   Time       : {time.time()-t0:.1f}s")
 
@@ -90,7 +105,7 @@ def train_lol(model, train_loader, val_loader, device, cfg, save_dir):
     torch.save(model.state_dict(), os.path.join(save_dir, 'final_model.pth'))
     print(f"\nSaved final_model.pth to {save_dir}")
 
-    return train_losses, val_losses, learning_rates
+    return train_losses, val_losses, learning_rates, val_psnrs, val_ssims
 
 
 # ─────────────────────────────────────────────
